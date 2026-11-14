@@ -1,3 +1,43 @@
+# Bài làm nhóm G06 · T02 Raw QC Triage
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/hdung25/K5-Day6-L2-Cloud-DataGovernanceAndPrivacy/blob/main/demo/T02_raw_qc_colab.ipynb)
+· **Demo:** https://t02-raw-qc-demo.vercel.app · **Slide:** https://t02-raw-qc-demo.vercel.app/slides.html
+· **Báo cáo:** [reports/group_report.md](reports/group_report.md)
+
+Xếp hạng 96 ảnh camera để người review (budget **B = 20**) tìm được nhiều ảnh lỗi nhất, rồi quyết định KEEP / RECAPTURE
+và GO / HOLD / REWORK cho cả lô. PoC dùng 4 bộ phát hiện riêng — **nhòe** (log Laplacian), **vỡ nén** (blockiness 8×8),
+**thiếu sáng** (độ sáng / median cùng điều kiện sáng), **lóa** (cụm pixel cháy 20×20) — và lấy điểm cao nhất.
+
+| Split eval (40 ảnh, 20 lỗi), B = 20, seed 42 | Random | Laplacian (baseline) | **PoC** |
+|---|---|---|---|
+| Defect Recall@20 (Wilson 95% CI) | 0.50 [0.30, 0.70] | 0.85 [0.64, 0.95] | **1.00 [0.84, 1.00]** |
+| Ảnh sạch lọt top-20 · đêm | 75% | 25% | **0%** |
+| Đúng loại lỗi | — | — | **95%** |
+
+Trên cả 96 ảnh: PoC gắn RECAPTURE cho 47/48 ảnh lỗi, 0 ảnh sạch → quyết định **HOLD** (49% cần chụp lại).
+
+> Nhãn chấm điểm ([reports/manual_audit_labels.csv](reports/manual_audit_labels.csv)) do nhóm tự gán bằng mắt vì repo học viên
+> không có `gt/`; ngưỡng chọn khi đã xem phân bố cả dev và eval → cần xác nhận lại trên heldout / GT giảng viên.
+
+```bash
+pip install -r requirements.txt
+python -m src.main --track t02 --output out/poc --run-name poc --offline --seed 42          # PoC
+python -m src.main --track t02 --pipeline src.examples.laplacian_baseline --output out/baseline --run-name baseline --offline --seed 42
+python -m src.evaluate --track t02 --gt reports/manual_audit_labels.csv --pred out/poc/ranked_review.csv
+pytest -q
+```
+
+| File | Nội dung |
+|---|---|
+| [src/pipeline.py](src/pipeline.py) | PoC: load → 4 detector → top-20 + contact sheet → review → GO/HOLD/REWORK |
+| [src/examples/laplacian_baseline.py](src/examples/laplacian_baseline.py) | Baseline 1 ngưỡng Laplacian |
+| [tests/test_t02_pipeline.py](tests/test_t02_pipeline.py) | Test success + edge case |
+| [demo/T02_raw_qc_colab.ipynb](demo/T02_raw_qc_colab.ipynb) | Notebook Colab chạy lại toàn bộ và vẽ minh chứng |
+| [web/](web/) | Trang demo + slide (deploy Vercel), build bằng `python tools/build_demo.py` |
+| [demo/anh_demo/](demo/anh_demo/) | 8 ảnh mẫu đặt tên theo điều kiện sáng để demo |
+
+---
+
 # Day 06 · Data Lab · Field-to-Release PoC (AI20K · Data Track)
 
 Starter repo cho bài lab **Data Pipeline, Privacy & Production PoC**: 14 challenge (T01–T14), một contract chung.

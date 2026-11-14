@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raw QC Triage</title>
+<meta name="description" content="Demo T02 Raw QC Triage: xếp hạng ảnh lỗi (blur, compression, dark, glare) cho người review với budget 20 ảnh.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#fbfbfd; --surface:#ffffff; --surface-2:#f5f5f7; --text:#1d1d1f; --muted:#6e6e73; --border:#d2d2d7; --hair:#e8e8ed;
+  --accent:#0071e3; --accent-soft:#eaf3fe; --ok:#1d7d3a; --ok-soft:#eaf6ed; --bad:#c9302c; --bad-soft:#fdeceb;
+  --warn:#a05a00; --warn-soft:#fdf3e1; --bar-1:#c7c7cc; --bar-2:#8e8e93;
+  --blur:#8e44ad; --compression:#0a7ea4; --dark:#3a3a3c; --glare:#d4880f; --none:#aeaeb2;
+  --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --surface:#1c1c1e; --surface-2:#2c2c2e; --text:#f5f5f7; --muted:#a1a1a6; --border:#3a3a3c; --hair:#2c2c2e;
+  --accent:#2997ff; --accent-soft:#0b2540; --ok:#30d158; --ok-soft:#0f2a17; --bad:#ff6961; --bad-soft:#3a1715;
+  --warn:#ffb340; --warn-soft:#33260d; --bar-1:#48484a; --bar-2:#8e8e93;
+  --blur:#bf5af2; --compression:#64d2ff; --dark:#98989d; --glare:#ffd60a; --none:#636366; --shadow:none;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;counter-reset:sec}
+code,.mono{font-family:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,monospace}
+code{font-size:.88em;background:var(--surface-2);padding:1px 5px;border-radius:5px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 78%,transparent);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair)}
+.top{display:flex;gap:16px;align-items:center;justify-content:space-between;padding:10px 0;flex-wrap:wrap}
+.brand{font-weight:600;font-size:15px;letter-spacing:-.01em}
+.brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:980px;border:1px solid var(--border);
+  background:transparent;color:var(--text);text-decoration:none;font-weight:500;font-size:14px;cursor:pointer;font-family:inherit}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:hover{opacity:.88}
+.hero{padding:64px 0 8px;text-align:center}
+.eyebrow{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+h1{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:46px;line-height:1.1;margin:14px auto 16px;letter-spacing:-.02em;max-width:820px}
+.lede{color:var(--muted);max-width:720px;margin:0 auto 8px;font-size:18px}
+.byline{font-size:13px;color:var(--muted);margin-top:14px}
+h2{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:28px;letter-spacing:-.01em;margin:64px 0 6px}
+h2::before{counter-increment:sec;content:counter(sec) ". ";color:var(--muted);font-weight:400}
+.sub{color:var(--muted);margin:0 0 20px;font-size:15px;max-width:760px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:36px}
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+.kpi .v{font-size:36px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.15;margin:6px 0 2px}
+.kpi .l{color:var(--muted);font-size:13px}
+.kpi .d{font-size:13px;color:var(--muted)}
+.up{color:var(--ok)!important} .down{color:var(--bad)}
+.pill{display:inline-block;padding:2px 12px;border-radius:980px;font-weight:600;font-size:15px;letter-spacing:.04em;vertical-align:middle}
+.pill.HOLD{background:var(--warn-soft);color:var(--warn)} .pill.GO{background:var(--ok-soft);color:var(--ok)} .pill.REWORK{background:var(--bad-soft);color:var(--bad)}
+.bars{display:grid;gap:16px}
+.barrow{display:grid;grid-template-columns:180px 1fr 52px;gap:12px;align-items:center;font-size:15px}
+.track{height:10px;background:var(--surface-2);border-radius:980px;overflow:hidden}
+.fill{height:100%;border-radius:980px}
+.num{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:14px;text-align:right;font-variant-numeric:tabular-nums}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.caption{font-size:13px;color:var(--muted);margin:16px 0 0}
+.caption b{color:var(--text);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:14.5px;font-variant-numeric:tabular-nums}
+table tr:first-child th{border-top:1.5px solid var(--text);border-bottom:1px solid var(--text)}
+table tr:last-child td{border-bottom:1.5px solid var(--text)}
+th,td{text-align:left;padding:8px 8px}
+th{font-weight:600;font-size:13px}
+td.n,th.n{font-family:"SF Mono",ui-monospace,Menlo,monospace;text-align:right}
+.try{display:grid;grid-template-columns:340px 1fr;gap:14px;align-items:start}
+.drop{display:block;border:1.5px dashed var(--border);border-radius:14px;padding:16px;text-align:center;color:var(--muted);cursor:pointer;font-size:14px}
+.drop u{color:var(--accent);text-decoration:none}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+canvas#preview{width:100%;border-radius:10px;display:block;background:var(--surface-2);aspect-ratio:16/9}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
+select{font:inherit;font-size:14px;padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.feat{display:grid;gap:12px;margin-top:14px}
+.feat .barrow{grid-template-columns:100px 1fr 48px}
+.verdict{font-family:"Source Serif 4",Georgia,serif;font-size:26px;font-weight:600;margin:6px 0 2px;letter-spacing:-.01em}
+.verdict .act{font-family:-apple-system,BlinkMacSystemFont,Inter,sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;
+  padding:3px 10px;border-radius:980px;vertical-align:middle;margin-right:10px}
+.act.KEEP{background:var(--ok-soft);color:var(--ok)} .act.RECAPTURE{background:var(--bad-soft);color:var(--bad)}
+.mono{font-size:12.5px;color:var(--muted)}
+.tabs{display:inline-flex;gap:2px;flex-wrap:wrap;margin:4px 0 18px;background:var(--surface-2);padding:3px;border-radius:10px}
+.tab{padding:6px 14px;border-radius:8px;border:0;background:transparent;color:var(--text);cursor:pointer;font:inherit;font-size:13px}
+.tab[aria-selected="true"]{background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+.batchctl{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center}
+.batchctl .drop{padding:26px 16px}
+.ctlcol{display:grid;gap:10px}
+input[type=number]{font:inherit;font-size:14px;width:80px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.btn:disabled{opacity:.4;cursor:default}
+.item.inq{outline:2px solid var(--accent);outline-offset:-2px}
+.item.outq{opacity:.62}
+.item.inq,.item.outq{cursor:default}
+.act-s{font-size:11px;font-weight:600;letter-spacing:.05em;padding:1px 7px;border-radius:980px;margin-right:4px}
+.act-s.KEEP{background:var(--ok-soft);color:var(--ok)} .act-s.RECAPTURE{background:var(--bad-soft);color:var(--bad)}
+@media (max-width:860px){ .batchctl{grid-template-columns:1fr} }
+.item{background:var(--surface);border:1px solid var(--hair);border-radius:14px;overflow:hidden;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.item:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.item img{width:100%;display:block;aspect-ratio:16/9}
+.item .meta{padding:10px 12px 12px;font-size:13px;display:grid;gap:4px}
+.item .id{font-weight:600;display:flex;justify-content:space-between;align-items:baseline}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--text)}
+.tag i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.ok{color:var(--ok)} .ko{color:var(--bad)}
+.rank{font-family:"SF Mono",ui-monospace,Menlo,monospace;color:var(--muted);font-weight:400}
+footer{color:var(--muted);font-size:13px;padding:28px 0 40px;border-top:1px solid var(--hair);margin-top:72px}
+@media (max-width:860px){
+  .grid4{grid-template-columns:repeat(2,1fr)} .two,.try{grid-template-columns:1fr}
+  .barrow{grid-template-columns:120px 1fr 48px} h1{font-size:32px} .hero{padding-top:40px}
+}
+</style>
+</head>
+<body>
+<header><div class="wrap top">
+  <div class="brand">T02 · Raw QC Triage<small>Day 06 Data Lab · Field-to-Release PoC</small></div>
+  <nav>
+    <a class="btn primary" href="slides.html">Xem slide (5 trang)</a>
+    <a class="btn" href="https://colab.research.google.com/github/hdung25/K5-Day6-L2-Cloud-DataGovernanceAndPrivacy/blob/main/demo/T02_raw_qc_colab.ipynb" target="_blank" rel="noopener">Mở trên Colab</a>
+    <a class="btn" href="https://github.com/hdung25/K5-Day6-L2-Cloud-DataGovernanceAndPrivacy" target="_blank" rel="noopener">GitHub</a>
+    <button class="btn" id="theme" type="button" aria-label="Đổi giao diện sáng/tối">◐</button>
+  </nav>
+</div></header>
+
+<main class="wrap">
+  <section class="hero">
+  <div class="eyebrow">Day 06 Data Lab · Track T02</div>
+  <h1>Xếp hạng ảnh lỗi cho kiểm định chất lượng dữ liệu thô</h1>
+  <p class="lede">Với ngân sách 20 lượt review, bốn bộ phát hiện — nhòe, vỡ nén, thiếu sáng, lóa — đưa toàn bộ ảnh lỗi
+    của tập đánh giá vào hàng chờ và đề xuất KEEP hoặc RECAPTURE cho từng ảnh.</p>
+  <div class="byline">96 ảnh synthetic · 2 camera · 3 điều kiện sáng · seed 42 · chạy offline trên CPU</div>
+  </section>
+
+  <section class="grid4" id="kpis"></section>
+
+  <h2>So sánh ba phương pháp</h2>
+  <p class="sub">Cùng 40 ảnh split <code>eval</code> (20 ảnh lỗi), cùng budget B = 20, seed 42 — chấm bằng <code>src.evaluate</code>.</p>
+  <div class="two">
+    <div class="card"><div class="bars" id="bars"></div>
+      <p class="caption"><b>Hình 1.</b> Defect Recall@20 = số ảnh lỗi nằm trong top-20 / tổng số ảnh lỗi (20).</p></div>
+    <div class="card"><table id="fa"></table><p class="caption"><b>Bảng 1.</b> Tỉ lệ ảnh sạch lọt vào top-20 theo điều kiện sáng (thấp hơn là tốt hơn).</p></div>
+  </div>
+
+  <h2>Chạy thử trên trình duyệt</h2>
+  <p class="sub">Bấm vào một ảnh trong thư viện bên dưới, hoặc thả ảnh của bạn vào — cùng 4 detector chạy bằng JavaScript (ảnh được đưa về 320×180).</p>
+  <div class="try">
+    <div class="card">
+      <label class="drop" id="drop">Thả ảnh vào đây hoặc <u>chọn file</u>
+        <input type="file" id="file" accept="image/*" hidden></label>
+      <div class="row" style="margin-top:10px"><span class="mono">Điều kiện sáng:</span>
+        <select id="light"><option value="day">day</option><option value="dusk">dusk</option><option value="night">night</option></select></div>
+      <canvas id="preview" width="320" height="180" style="margin-top:10px"></canvas>
+    </div>
+    <div class="card" id="result"><p class="sub" style="margin:0">Chưa có ảnh. Chọn một ảnh để xem điểm từng loại lỗi.</p></div>
+  </div>
+
+  <h2>Xử lý cả lô ảnh</h2>
+  <p class="sub">Thả nhiều ảnh cùng lúc (hoặc chạy lại 96 ảnh mẫu): hệ thống chấm từng ảnh, xếp hạng, chọn top-B gửi người review
+    và đưa ra quyết định cho cả lô — giống hệt pipeline. Ảnh không rời khỏi máy bạn.</p>
+  <div class="card">
+    <div class="batchctl">
+      <label class="drop" id="bdrop">Thả nhiều ảnh vào đây hoặc <u>chọn nhiều file</u>
+        <input type="file" id="bfile" accept="image/*" multiple hidden></label>
+      <div class="ctlcol">
+        <div class="row"><span class="mono">Điều kiện sáng mặc định:</span>
+          <select id="blight"><option value="day">day</option><option value="dusk">dusk</option><option value="night">night</option></select></div>
+        <div class="row"><span class="mono">Budget review B:</span>
+          <input type="number" id="bbudget" value="20" min="1" max="500"></div>
+        <div class="row"><button class="btn" type="button" id="bsample">Chạy 96 ảnh mẫu</button>
+          <button class="btn" type="button" id="bcsv" disabled>Tải ranked_review.csv</button></div>
+      </div>
+    </div>
+    <p class="caption">Nếu tên file chứa <code>day</code>, <code>dusk</code> hoặc <code>night</code>, điều kiện sáng được nhận theo tên file; nếu không, dùng giá trị mặc định.</p>
+    <div id="bstatus" class="mono" style="margin-top:10px"></div>
+    <div id="bsummary"></div>
+    <div id="bresult"></div>
+  </div>
+
+  <h2>Thư viện ảnh và kết quả</h2>
+  <p class="sub">Mỗi thẻ: nhãn audit, dự đoán PoC (điểm), và kết quả của baseline Laplacian. <span class="ok">✓</span> đúng · <span class="ko">✗</span> sai.</p>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="gallery" id="gallery"></div>
+</main>
+
+<footer><div class="wrap">
+  Nhãn chấm điểm (<code>reports/manual_audit_labels.csv</code>) do nhóm tự gán bằng mắt cho 96 ảnh synthetic — repo học viên không có <code>gt/</code> của giảng viên.
+  Ngưỡng chọn tay từ phân bố đặc trưng (đã xem cả dev và eval) — cần heldout mới để xác nhận. Pipeline: <code>src/pipeline.py</code> · baseline: <code>src/examples/laplacian_baseline.py</code>.
+</div></footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const TYPES = ["blur","compression","dark","glare"];
+const VI = {blur:"Nhòe",compression:"Vỡ nén",dark:"Thiếu sáng",glare:"Lóa",none:"Sạch"};
+const P = {blur_lap_hi:50,blur_lap_lo:3,comp_blk_lo:1.45,comp_blk_span:.6,dark_ratio_hi:.6,dark_ratio_span:.4,
+           glare_blk_lo:.07,glare_blk_span:.2,glare_ratio_lo:1.4,glare_ratio_span:.6};
+let DATA, LIGHT_MED;
+
+try{ const t = localStorage.getItem("theme"); if(t) document.documentElement.dataset.theme = t; }catch(e){}
+$("#theme").onclick = () => {
+  const cur = document.documentElement.dataset.theme || "light";
+  const next = cur === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try{ localStorage.setItem("theme", next); }catch(e){}
+};
+
+const pct = v => v == null ? "—" : (v*100).toFixed(0) + "%";
+const tag = t => `<span class="tag"><i style="background:var(--${t})"></i>${VI[t]}</span>`;
+
+fetch("data.json").then(r => r.json()).then(d => { DATA = d; LIGHT_MED = d.light_median; render(); });
+
+function render(){
+  const m = DATA.metrics, imgs = DATA.images;
+  const defects = imgs.filter(i => i.is_defect), caught = defects.filter(i => i.pred_action === "RECAPTURE").length;
+  const falseAlarm = imgs.filter(i => !i.is_defect && i.pred_action === "RECAPTURE").length;
+  const lapFalse = imgs.filter(i => !i.is_defect && i.lap_action === "RECAPTURE").length;
+  $("#kpis").innerHTML = `
+    <div class="card kpi"><div class="l">Defect Recall@20 (eval)</div><div class="v">${m.poc.recall.toFixed(2)}</div>
+      <div class="d up">+${(m.poc.recall-m.baseline_lap.recall).toFixed(2)} so với Laplacian</div></div>
+    <div class="card kpi"><div class="l">Precision@20 (eval)</div><div class="v">${m.poc.precision.toFixed(2)}</div>
+      <div class="d up">0 ảnh sạch trong top-20</div></div>
+    <div class="card kpi"><div class="l">Ảnh lỗi bắt được (96 ảnh)</div><div class="v">${caught}/${defects.length}</div>
+      <div class="d">${falseAlarm} báo nhầm · Laplacian: ${lapFalse} báo nhầm</div></div>
+    <div class="card kpi"><div><div class="l">Quyết định release</div>
+      <div class="v"><span class="pill ${DATA.decision.status}">${DATA.decision.status}</span></div>
+      <div class="d mono">${DATA.decision.reason_code} · ${DATA.decision.owner}</div></div></div>`;
+  const runs = [["Random","baseline_random","var(--bar-1)"],["Laplacian (1 ngưỡng)","baseline_lap","var(--bar-2)"],["PoC (4 bộ phát hiện)","poc","var(--accent)"]];
+  $("#bars").innerHTML = runs.map(([n,k,c]) => `<div class="barrow"><span>${n}</span>
+    <div class="track"><div class="fill" style="width:${m[k].recall*100}%;background:${c}"></div></div><span class="num">${m[k].recall.toFixed(2)}</span></div>`).join("");
+  $("#fa").innerHTML = `<tr><th>Ảnh sạch lọt top-20</th><th class="n">Random</th><th class="n">Laplacian</th><th class="n">PoC</th></tr>` +
+    [["Ngày","fa_day"],["Hoàng hôn","fa_dusk"],["Đêm","fa_night"]].map(([n,k]) =>
+      `<tr><td>${n}</td><td class="n">${pct(m.baseline_random[k])}</td><td class="n">${pct(m.baseline_lap[k])}</td><td class="n"><b>${pct(m.poc[k])}</b></td></tr>`).join("") +
+    `<tr><td>Đúng loại lỗi</td><td class="n">—</td><td class="n">—</td><td class="n"><b>${pct(m.poc.type_acc)}</b></td></tr>`;
+  renderTabs(); renderGallery("queue");
+}
+
+const FILTERS = {
+  queue:["Top-20 cần review", is => is.filter(i => i.split === "eval").sort((a,b) => b.score - a.score).slice(0,20)],
+  all:["Tất cả (96)", is => is],
+  defect:["Ảnh lỗi", is => is.filter(i => i.is_defect)],
+  clean:["Ảnh sạch", is => is.filter(i => !i.is_defect)],
+  lapwrong:["Laplacian đoán sai", is => is.filter(i => (i.lap_action === "RECAPTURE") !== !!i.is_defect)],
+  pocwrong:["PoC đoán sai", is => is.filter(i => (i.pred_action === "RECAPTURE") !== !!i.is_defect)],
+};
+function renderTabs(){
+  $("#tabs").innerHTML = Object.entries(FILTERS).map(([k,[n]]) => `<button class="tab" role="tab" data-k="${k}">${n}</button>`).join("");
+  $("#tabs").onclick = e => { const k = e.target.dataset.k; if(k) renderGallery(k); };
+}
+function renderGallery(k){
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.k === k));
+  const list = FILTERS[k][1](DATA.images);
+  $("#gallery").innerHTML = list.map((i, n) => {
+    const pocOk = (i.pred_action === "RECAPTURE") === !!i.is_defect, lapOk = (i.lap_action === "RECAPTURE") === !!i.is_defect;
+    return `<div class="item" data-id="${i.image_id}"><img loading="lazy" src="img/${i.image_id}.jpg" alt="${i.image_id}">
+      <div class="meta"><div class="id"><span>${k === "queue" ? `<span class="rank">#${n+1}</span> ` : ""}${i.image_id}</span><span class="mono">${i.camera_id} · ${i.light}</span></div>
+      <div>Nhãn: ${tag(i.defect_type)}</div>
+      <div>PoC: ${tag(i.pred_defect_type)} <span class="mono">${i.score.toFixed(2)}</span> <span class="${pocOk?"ok":"ko"}">${pocOk?"✓":"✗"}</span></div>
+      <div>Laplacian: <span class="mono">${i.lap_action}</span> <span class="${lapOk?"ok":"ko"}">${lapOk?"✓":"✗"}</span></div></div></div>`;
+  }).join("") || `<p class="sub">Không có ảnh nào.</p>`;
+}
+$("#gallery").onclick = e => {
+  const card = e.target.closest(".item"); if(!card) return;
+  const i = DATA.images.find(x => x.image_id === card.dataset.id);
+  $("#light").value = i.light;
+  loadImage(`img/${i.image_id}.jpg`, i);
+  $("#result").scrollIntoView({behavior:"smooth", block:"center"});
+};
+
+/* ---------- in-browser scorer (port of src/pipeline.py) ---------- */
+function features(ctx, W, H){
+  const px = ctx.getImageData(0,0,W,H).data, g = new Float32Array(W*H);
+  let sum = 0;
+  for(let p = 0; p < W*H; p++){ const v = .299*px[4*p] + .587*px[4*p+1] + .114*px[4*p+2]; g[p] = v; sum += v; }
+  const at = (x,y) => g[Math.min(H-1,Math.max(0,y))*W + Math.min(W-1,Math.max(0,x))];
+  let s = 0, s2 = 0;
+  for(let y = 0; y < H; y++) for(let x = 0; x < W; x++){
+    const l = at(x,y-1) + at(x,y+1) + at(x-1,y) + at(x+1,y) - 4*at(x,y); s += l; s2 += l*l; }
+  const n = W*H, lap = s2/n - (s/n)**2;
+  let ex = 0, nex = 0, ix = 0, nix = 0, ey = 0, ney = 0, iy = 0, niy = 0;
+  for(let y = 0; y < H; y++) for(let x = 0; x < W-1; x++){
+    const d = Math.abs(g[y*W+x+1] - g[y*W+x]); if(x % 8 === 7){ ex += d; nex++; } else { ix += d; nix++; } }
+  for(let y = 0; y < H-1; y++) for(let x = 0; x < W; x++){
+    const d = Math.abs(g[(y+1)*W+x] - g[y*W+x]); if(y % 8 === 7){ ey += d; ney++; } else { iy += d; niy++; } }
+  const blk = (ex/nex + ey/ney) / (ix/nix + iy/niy + 1e-6);
+  let satMax = 0;
+  for(let cy = 0; cy + 20 <= H; cy += 20) for(let cx = 0; cx + 20 <= W; cx += 20){
+    let c = 0; for(let y = cy; y < cy+20; y++) for(let x = cx; x < cx+20; x++) if(g[y*W+x] > 245) c++;
+    satMax = Math.max(satMax, c/400); }
+  return {lap, mean: sum/n, blk, sat: satMax};
+}
+const clip = v => Math.max(0, Math.min(1, v));
+function scoreOf(f, light){
+  const ratio = f.mean / LIGHT_MED[light];
+  const s = {
+    blur: clip((Math.log(P.blur_lap_hi) - Math.log(f.lap + 1e-6)) / Math.log(P.blur_lap_hi / P.blur_lap_lo)),
+    compression: clip((f.blk - P.comp_blk_lo) / P.comp_blk_span),
+    dark: clip((P.dark_ratio_hi - ratio) / P.dark_ratio_span),
+    glare: Math.max(clip((f.sat - P.glare_blk_lo) / P.glare_blk_span), clip((ratio - P.glare_ratio_lo) / P.glare_ratio_span)),
+  };
+  const top = TYPES.reduce((a,b) => s[b] > s[a] ? b : a);
+  return {s, ratio, score: s[top], type: s[top] >= .5 ? top : "none"};
+}
+function loadImage(src, ref){
+  const img = new Image();
+  img.onload = () => {
+    const c = $("#preview"), ctx = c.getContext("2d", {willReadFrequently:true});
+    const W = 320, H = 180, r = Math.max(W/img.width, H/img.height), w = img.width*r, h = img.height*r;
+    ctx.drawImage(img, (W-w)/2, (H-h)/2, w, h);
+    const f = features(ctx, W, H), res = scoreOf(f, $("#light").value);
+    showResult(f, res, ref);
+    $("#light").onchange = () => showResult(f, scoreOf(f, $("#light").value), ref);
+  };
+  img.src = src;
+}
+function showResult(f, r, ref){
+  const action = r.type === "none" ? "KEEP" : "RECAPTURE";
+  $("#result").innerHTML = `<div class="mono">${ref ? ref.image_id + " · nhãn audit: " + VI[ref.defect_type] : "Ảnh của bạn"}</div>
+    <div class="verdict"><span class="act ${action}">${action}</span>${VI[r.type]}</div>
+    <div class="feat">${TYPES.map(t => `<div class="barrow"><span>${VI[t]}</span>
+      <div class="track"><div class="fill" style="width:${r.s[t]*100}%;background:var(--${t})"></div></div><span class="num">${r.s[t].toFixed(2)}</span></div>`).join("")}</div>
+    <p class="mono" style="margin:12px 0 0">Laplacian var = ${f.lap.toFixed(0)} · blockiness = ${f.blk.toFixed(2)} ·
+      sáng / median(${$("#light").value}) = ${r.ratio.toFixed(2)} · cháy sáng cục bộ = ${f.sat.toFixed(2)}</p>
+    ${ref ? `<p class="mono" style="margin:4px 0 0">Python pipeline: ${VI[ref.pred_defect_type]} (${ref.score.toFixed(2)}) · Laplacian baseline: ${ref.lap_action}</p>` : ""}`;
+}
+const drop = $("#drop");
+$("#file").onchange = e => { const f = e.target.files[0]; if(f) loadImage(URL.createObjectURL(f)); };
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if(f) loadImage(URL.createObjectURL(f)); });
+
+/* ---------- batch mode: score -> rank -> top-B queue -> batch decision ---------- */
+let BATCH = [];
+function scoreSrc(src){
+  return new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = 320; c.height = 180;
+      const ctx = c.getContext("2d", {willReadFrequently:true});
+      const r = Math.max(320/img.width, 180/img.height), w = img.width*r, h = img.height*r;
+      ctx.drawImage(img, (320-w)/2, (180-h)/2, w, h);
+      ok(features(ctx, 320, 180));
+    };
+    img.onerror = fail; img.src = src;
+  });
+}
+function lightFromName(name){
+  const n = name.toLowerCase();
+  return ["night","dusk","day"].find(l => n.includes(l)) || $("#blight").value;
+}
+async function runBatch(items){
+  BATCH = []; $("#bcsv").disabled = true; $("#bsummary").innerHTML = ""; $("#bresult").innerHTML = "";
+  for(let k = 0; k < items.length; k++){
+    $("#bstatus").textContent = `Đang chấm ${k+1}/${items.length} ảnh…`;
+    try{
+      const f = await scoreSrc(items[k].src), r = scoreOf(f, items[k].light);
+      BATCH.push({...items[k], f, r, sum: TYPES.reduce((a,t) => a + r.s[t], 0)});
+    }catch(e){ BATCH.push({...items[k], error: true}); }
+  }
+  renderBatch();
+}
+function renderBatch(){
+  const ok = BATCH.filter(b => !b.error), bad = BATCH.length - ok.length;
+  ok.sort((a,b) => b.r.score - a.r.score || b.sum - a.sum);
+  const B = Math.max(1, parseInt($("#bbudget").value) || 20);
+  const flagged = ok.filter(b => b.r.type !== "none"), rate = ok.length ? flagged.length / ok.length : 0;
+  const status = rate > 0.6 ? "REWORK" : rate > 0.1 ? "HOLD" : "GO";
+  const byType = TYPES.map(t => [t, flagged.filter(b => b.r.type === t).length]).filter(x => x[1]);
+  const labelled = ok.filter(b => b.label !== undefined);
+  let check = "";
+  if(labelled.length === ok.length && ok.length){
+    const pos = ok.filter(b => b.label !== "none").length, hit = ok.slice(0, B).filter(b => b.label !== "none").length;
+    check = `<div class="card kpi"><div class="l">Đối chiếu nhãn audit</div><div class="v">${hit}/${Math.min(B,pos)}</div>
+      <div class="d">ảnh lỗi thật trong top-${B} (tổng ${pos} ảnh lỗi)</div></div>`;
+  }
+  $("#bstatus").textContent = `Đã chấm ${ok.length} ảnh` + (bad ? ` · ${bad} file không đọc được` : "") + ".";
+  $("#bsummary").innerHTML = `<div class="grid4" style="margin-top:14px">
+    <div class="card kpi"><div class="l">Ảnh trong lô</div><div class="v">${ok.length}</div><div class="d">top-${Math.min(B, ok.length)} gửi người review</div></div>
+    <div class="card kpi"><div class="l">Nghi lỗi (RECAPTURE)</div><div class="v">${flagged.length}</div>
+      <div class="d">${(rate*100).toFixed(0)}% · ${byType.map(([t,n]) => `${VI[t]} ${n}`).join(" · ") || "không có"}</div></div>
+    <div class="card kpi"><div class="l">Quyết định cho cả lô</div><div class="v"><span class="pill ${status}">${status}</span></div>
+      <div class="d">GO ≤ 10% · HOLD ≤ 60% · REWORK &gt; 60%</div></div>
+    ${check || `<div class="card kpi"><div class="l">Giữ lại (KEEP)</div><div class="v">${ok.length - flagged.length}</div><div class="d">ảnh đạt chất lượng</div></div>`}
+  </div>`;
+  $("#bresult").innerHTML = `<p class="caption" style="margin:22px 0 10px"><b>Hàng chờ review</b> — xếp theo điểm nghi lỗi, ${Math.min(B, ok.length)} ảnh đầu (viền xanh) được gửi cho người kiểm duyệt.</p>
+    <div class="gallery">${ok.map((b, n) => `<div class="item ${n < B ? "inq" : "outq"}">
+      <img src="${b.src}" alt="${b.name}">
+      <div class="meta"><div class="id"><span><span class="rank">#${n+1}</span> ${b.name}</span><span class="mono">${b.light}</span></div>
+      <div><span class="act-s ${b.r.type === "none" ? "KEEP" : "RECAPTURE"}">${b.r.type === "none" ? "KEEP" : "RECAPTURE"}</span>
+        ${tag(b.r.type)} <span class="mono">${b.r.score.toFixed(2)}</span></div>
+      ${b.label !== undefined ? `<div class="mono">Nhãn audit: ${VI[b.label]} <span class="${(b.label !== "none") === (b.r.type !== "none") ? "ok" : "ko"}">${(b.label !== "none") === (b.r.type !== "none") ? "✓" : "✗"}</span></div>` : ""}
+      </div></div>`).join("")}</div>`;
+  $("#bcsv").disabled = !ok.length;
+  BATCH_SORTED = ok; BATCH_B = B;
+}
+let BATCH_SORTED = [], BATCH_B = 20;
+$("#bbudget").onchange = () => { if(BATCH.length) renderBatch(); };
+$("#bfile").onchange = e => {
+  const files = [...e.target.files]; if(!files.length) return;
+  runBatch(files.map(f => ({name: f.name, src: URL.createObjectURL(f), light: lightFromName(f.name)})));
+};
+const bdrop = $("#bdrop");
+["dragenter","dragover"].forEach(ev => bdrop.addEventListener(ev, e => { e.preventDefault(); bdrop.classList.add("over"); }));
+["dragleave","drop"].forEach(ev => bdrop.addEventListener(ev, e => { e.preventDefault(); bdrop.classList.remove("over"); }));
+bdrop.addEventListener("drop", e => {
+  const files = [...e.dataTransfer.files].filter(f => f.type.startsWith("image/")); if(!files.length) return;
+  runBatch(files.map(f => ({name: f.name, src: URL.createObjectURL(f), light: lightFromName(f.name)})));
+});
+$("#bsample").onclick = () => runBatch(DATA.images.map(i => ({name: i.image_id, src: `img/${i.image_id}.jpg`, light: i.light, label: i.defect_type})));
+$("#bcsv").onclick = () => {
+  const rows = [["rank","image","light","score","pred_defect_type","pred_action","in_review_queue",...TYPES.map(t => "s_" + t)]];
+  BATCH_SORTED.forEach((b, n) => rows.push([n+1, b.name, b.light, b.r.score.toFixed(4), b.r.type,
+    b.r.type === "none" ? "KEEP" : "RECAPTURE", n < BATCH_B ? 1 : 0, ...TYPES.map(t => b.r.s[t].toFixed(4))]));
+  const csv = rows.map(r => r.map(v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], {type: "text/csv"}));
+  a.download = "ranked_review.csv"; a.click();
+};
+</script>
+</body>
+</html>

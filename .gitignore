@@ -32,3 +32,6 @@ __pycache__/
 .DS_Store
 .idea/
 .vscode/
+
+# Vercel
+.vercel/

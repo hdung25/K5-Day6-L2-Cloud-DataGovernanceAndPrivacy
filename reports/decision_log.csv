@@ -1,0 +1,2 @@
+ts,scope,status,canonical,reason_code,reason,owner,evidence
+2026-11-14T10:21:58+00:00,t02,HOLD,HOLD,RECAPTURE_NEEDED,"49% ảnh nghi lỗi {'compression': 17, 'blur': 12, 'dark': 10, 'glare': 8}: chụp lại các ảnh RECAPTURE trước khi release",QC Lead (Data Track),out\poc\ranked_review.csv;out\poc\contact_sheet.html

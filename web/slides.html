@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Raw QC Slides</title>
+<meta name="description" content="5 slide trình bày T02 Raw QC Triage: bài toán, dữ liệu, phương pháp, kết quả, failure case và quyết định.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f5f7; --slide:#ffffff; --text:#1d1d1f; --muted:#6e6e73; --border:#e8e8ed; --soft:#f5f5f7;
+  --accent:#0071e3; --accent-soft:#eaf3fe; --ok:#1d7d3a; --ok-soft:#eaf6ed; --bad:#c9302c; --bad-soft:#fdeceb;
+  --warn:#a05a00; --warn-soft:#fdf3e1; --bar-1:#c7c7cc; --bar-2:#8e8e93;
+  --blur:#8e44ad; --compression:#0a7ea4; --dark:#3a3a3c; --glare:#d4880f; --none:#aeaeb2;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:var(--text)}
+.stage{position:fixed;inset:0;overflow:hidden}
+.deck{width:1280px;height:720px;position:absolute;left:50%;top:calc(50% - 22px);transform-origin:center center}
+.slide{position:absolute;inset:0;background:var(--slide);border-radius:20px;padding:54px 68px 46px;display:none;flex-direction:column;
+  box-shadow:0 2px 6px rgba(0,0,0,.04),0 24px 60px rgba(0,0,0,.10);overflow:hidden}
+.slide.active{display:flex}
+.kicker{font-size:13px;font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+h1{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:50px;line-height:1.1;margin:12px 0 16px;letter-spacing:-.02em}
+h2{font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:36px;line-height:1.15;margin:10px 0 22px;letter-spacing:-.015em}
+p{margin:0}
+.lead{font-size:20px;color:var(--muted);line-height:1.5;max-width:980px}
+.foot{position:absolute;left:64px;right:64px;bottom:20px;display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.mono{font-family:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,monospace}
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:500;color:var(--text)}
+.tag i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:auto}
+figure{margin:0}
+figure img{width:100%;display:block;border-radius:10px;aspect-ratio:16/9;object-fit:cover}
+figcaption{font-size:14px;margin-top:6px;display:flex;justify-content:space-between;gap:6px;align-items:center}
+.cap-s{font-size:12.5px;color:var(--muted)}
+.facts{display:flex;gap:28px;margin:22px 0 26px}
+.fact b{display:block;font-family:"Source Serif 4",Georgia,serif;font-weight:600;font-size:36px;line-height:1.1}
+.fact span{color:var(--muted);font-size:14px}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;flex:1}
+.trap{background:var(--soft);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.trap h3{margin:0;font-size:18px;font-weight:600}
+.trap p{font-size:14.5px;color:var(--muted);line-height:1.45}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.trap .pair{grid-template-columns:1fr;gap:6px}
+.trap .pair img{aspect-ratio:auto;height:150px;object-fit:cover}
+.trap p{margin-top:auto}
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px}
+.step{border:1px solid var(--border);border-radius:12px;padding:10px 12px;font-size:14px}
+.step b{display:block;font-size:12px;color:var(--muted);font-family:"SF Mono",ui-monospace,Menlo,monospace;font-weight:500}
+.det{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;flex:1}
+.d{border-radius:16px;padding:16px 18px;border-top:3px solid;background:var(--soft);display:flex;flex-direction:column;gap:8px}
+.d h3{margin:0;font-family:"Source Serif 4",Georgia,serif;font-size:22px;font-weight:600}
+.d .f{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:12.5px;background:var(--slide);border-radius:6px;padding:6px 8px}
+.d p{font-size:14px;color:var(--muted);line-height:1.45}
+.d img{border-radius:6px;width:100%;margin-top:auto}
+.key{margin-top:16px;background:var(--accent-soft);border-radius:12px;padding:12px 16px;font-size:16px}
+.res{display:grid;grid-template-columns:1.05fr 1fr;gap:30px;flex:1}
+.bars{display:grid;gap:14px;margin:8px 0 18px}
+.barrow{display:grid;grid-template-columns:200px 1fr 60px;gap:12px;align-items:center;font-size:16px}
+.track{height:12px;background:var(--soft);border-radius:980px;overflow:hidden}
+.fill{height:100%;border-radius:980px}
+.num{font-family:"SF Mono",ui-monospace,Menlo,monospace;font-size:17px;font-weight:500;text-align:right}
+table{width:100%;border-collapse:collapse;font-size:15px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;text-align:left}
+table tr:first-child th{border-top:1.5px solid var(--text);border-bottom:1px solid var(--text)}
+table tr:last-child td{border-bottom:1.5px solid var(--text)}
+th{font-weight:600;font-size:13.5px}
+td.n,th.n{text-align:right;font-family:"SF Mono",ui-monospace,Menlo,monospace}
+.ev{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.badge{font-size:12.5px;font-weight:600;padding:1px 8px;border-radius:999px}
+.badge.ko{background:var(--bad-soft);color:var(--bad)} .badge.ok{background:var(--ok-soft);color:var(--ok)}
+.end{display:grid;grid-template-columns:1fr 1fr;gap:28px;flex:1}
+.box{background:var(--soft);border-radius:16px;padding:18px 20px}
+.box h3{margin:0 0 10px;font-size:18px;font-weight:600}
+.box ul{margin:0;padding-left:20px;font-size:15.5px;line-height:1.55}
+.decision{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.pill{font-size:24px;font-weight:700;letter-spacing:.04em;padding:4px 18px;border-radius:999px;background:var(--warn-soft);color:var(--warn)}
+.links{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.links a{font-size:14px;color:#fff;background:var(--accent);text-decoration:none;padding:6px 16px;border-radius:980px}
+.nav{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;
+  background:rgba(29,29,31,.72);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);color:#fff;padding:6px 10px;border-radius:999px;font-size:14px;z-index:5}
+.nav button,.nav a{background:none;border:0;color:#fff;font:inherit;cursor:pointer;padding:4px 10px;text-decoration:none}
+@media print{
+  @page{size:1280px 720px;margin:0}
+  html,body{background:#fff}
+  .stage{position:static;display:block}
+  .deck{transform:none!important;width:1280px;height:auto}
+  .slide{position:relative;display:flex!important;width:1280px;height:720px;border-radius:0;box-shadow:none;page-break-after:always}
+  .nav{display:none}
+}
+</style>
+</head>
+<body>
+<div class="stage"><div class="deck" id="deck">
+
+<!-- 1 -->
+<section class="slide">
+  <div class="kicker">Day 06 · Data Lab · Track T02</div>
+  <h1>Raw QC Triage: đưa đúng 20 ảnh lỗi<br>tới tay người review</h1>
+  <p class="lead">Camera thực địa trả về ảnh nhòe, vỡ nén, thiếu sáng, lóa. Lọt vào tập train thì model học sai;
+    chụp lại thì tốn tiền. Người duyệt chỉ có <b>20 lượt xem</b> — pipeline phải xếp ảnh đáng ngờ nhất lên đầu và đề xuất KEEP / RECAPTURE.</p>
+  <div class="facts">
+    <div class="fact"><b>96</b><span>ảnh · 24 cảnh · 2 camera</span></div>
+    <div class="fact"><b>3</b><span>điều kiện sáng: ngày · hoàng hôn · đêm</span></div>
+    <div class="fact"><b>B = 20</b><span>budget review cho split eval (40 ảnh)</span></div>
+    <div class="fact"><b>Recall@20</b><span>metric chính · ảnh lỗi trong top-20</span></div>
+  </div>
+  <div class="strip">
+    <figure><img src="img/img_21_0.jpg" alt="Ảnh sạch"><figcaption><span class="tag"><i style="background:var(--none)"></i>Sạch</span><span class="cap-s mono">img_21_0</span></figcaption></figure>
+    <figure><img src="img/img_21_2.jpg" alt="Ảnh nhòe"><figcaption><span class="tag"><i style="background:var(--blur)"></i>Nhòe</span><span class="cap-s mono">img_21_2</span></figcaption></figure>
+    <figure><img src="img/img_00_2.jpg" alt="Ảnh vỡ nén"><figcaption><span class="tag"><i style="background:var(--compression)"></i>Vỡ nén</span><span class="cap-s mono">img_00_2</span></figcaption></figure>
+    <figure><img src="img/img_07_2.jpg" alt="Ảnh thiếu sáng"><figcaption><span class="tag"><i style="background:var(--dark)"></i>Thiếu sáng</span><span class="cap-s mono">img_07_2</span></figcaption></figure>
+    <figure><img src="img/img_17_2.jpg" alt="Ảnh lóa"><figcaption><span class="tag"><i style="background:var(--glare)"></i>Lóa</span><span class="cap-s mono">img_17_2</span></figcaption></figure>
+  </div>
+  <div class="foot"><span>T02 · Raw QC Triage</span><span>1 / 5</span></div>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">Dữ liệu · 3 cái bẫy</div>
+  <h2>Một ngưỡng "độ nét" toàn cục sẽ sai ở đâu?</h2>
+  <div class="cols">
+    <div class="trap">
+      <h3>① Ảnh đêm tối tự nhiên</h3>
+      <div class="pair">
+        <figure><img src="img/img_01_0.jpg" alt=""><figcaption><span class="badge ok">sạch</span><span class="cap-s mono">đêm · sáng 32</span></figcaption></figure>
+        <figure><img src="img/img_02_3.jpg" alt=""><figcaption><span class="badge ko">lỗi tối</span><span class="cap-s mono">ngày · sáng 24</span></figcaption></figure>
+      </div>
+      <p>Độ sáng tuyệt đối gần bằng nhau. Phải so với <b>ảnh cùng điều kiện sáng</b>, không so với một ngưỡng chung.</p>
+    </div>
+    <div class="trap">
+      <h3>② cam_B có quang học mềm</h3>
+      <div class="pair">
+        <figure><img src="img/img_09_0.jpg" alt=""><figcaption><span class="badge ok">sạch</span><span class="cap-s mono">cam_B · lap 187</span></figcaption></figure>
+        <figure><img src="img/img_10_0.jpg" alt=""><figcaption><span class="badge ok">sạch</span><span class="cap-s mono">cam_A · lap 1248</span></figcaption></figure>
+      </div>
+      <p>Ảnh sạch của cam_B "mềm" hơn cam_A ~6 lần → ngưỡng Laplacian báo nhầm cả loạt ảnh tốt.</p>
+    </div>
+    <div class="trap">
+      <h3>③ Lỗi mà ảnh vẫn "nét"</h3>
+      <div class="pair">
+        <figure><img src="img/img_18_2.jpg" alt=""><figcaption><span class="badge ko">lóa cục bộ</span><span class="cap-s mono">lap 335</span></figcaption></figure>
+        <figure><img src="img/img_05_2.jpg" alt=""><figcaption><span class="badge ko">vỡ nén</span><span class="cap-s mono">lap 804</span></figcaption></figure>
+      </div>
+      <p>Lóa trên biển số và pixel hoá còn <b>tăng</b> độ nét đo được → Laplacian đẩy chúng xuống cuối hàng chờ.</p>
+    </div>
+  </div>
+  <div class="foot"><span>Nhãn audit: nhóm tự gán bằng mắt cho 96 ảnh (repo học viên không có gt/)</span><span>2 / 5</span></div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">Phương pháp</div>
+  <h2>Bốn bộ phát hiện cho bốn loại lỗi — lấy điểm cao nhất</h2>
+  <div class="steps">
+    <div class="step"><b>01 load</b>Kiểm sha256 manifest, đủ ảnh</div>
+    <div class="step"><b>02 process</b>4 đặc trưng / ảnh → điểm 0–1</div>
+    <div class="step"><b>03 rank</b>Top-20 + contact sheet HTML</div>
+    <div class="step"><b>04 review</b>Reviewer approve / reject / edit + audit log</div>
+    <div class="step"><b>05 decide</b>GO / HOLD / REWORK + owner</div>
+  </div>
+  <div class="det">
+    <div class="d" style="border-color:var(--blur)"><h3>Nhòe</h3><div class="f">log Laplacian var<br>&lt; 50 → nghi · &lt; 3 → chắc</div>
+      <p>Thang log tách rõ nhòe thật (lap 2–6) khỏi cam_B mềm (lap 160+).</p><img src="img/img_15_2.jpg" alt=""></div>
+    <div class="d" style="border-color:var(--compression)"><h3>Vỡ nén</h3><div class="f">blockiness 8×8 =<br>gradient biên khối / trong khối</div>
+      <p>Ảnh sạch 0.7–1.7, vỡ nén phần lớn 1.9–3.7. Không phụ thuộc độ nét.</p><img src="img/img_10_2.jpg" alt=""></div>
+    <div class="d" style="border-color:var(--dark)"><h3>Thiếu sáng</h3><div class="f">độ sáng / median<br>cùng điều kiện light &lt; 0.6</div>
+      <p>Ảnh đêm sạch có tỉ lệ ≈ 1 → không bị loại oan.</p><img src="img/img_08_3.jpg" alt=""></div>
+    <div class="d" style="border-color:var(--glare)"><h3>Lóa</h3><div class="f">% pixel cháy &gt;245 ở ô 20×20<br>tệ nhất, hoặc sáng &gt;1.4× median</div>
+      <p>Bắt cả lóa nhỏ trên biển số mà trung bình toàn ảnh không thấy.</p><img src="img/img_20_3.jpg" alt=""></div>
+  </div>
+  <div class="key">Ngưỡng cố định trong code (<span class="mono">FEATURE_PARAMS</span>), không học từ nhãn. Chạy CPU, offline: <span class="mono">0.37 s / 100 ảnh</span>.</div>
+  <div class="foot"><span>src/pipeline.py · src/examples/laplacian_baseline.py</span><span>3 / 5</span></div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">Kết quả · split eval (40 ảnh, 20 ảnh lỗi), B = 20, seed 42</div>
+  <h2>PoC đưa đủ 20/20 ảnh lỗi vào hàng chờ review</h2>
+  <div class="res">
+    <div>
+      <div class="bars">
+        <div class="barrow"><span>Random</span><div class="track"><div class="fill" style="width:50%;background:var(--bar-1)"></div></div><span class="num">0.50</span></div>
+        <div class="barrow"><span>Laplacian 1 ngưỡng</span><div class="track"><div class="fill" style="width:85%;background:var(--bar-2)"></div></div><span class="num">0.85</span></div>
+        <div class="barrow"><b>PoC (4 bộ phát hiện)</b><div class="track"><div class="fill" style="width:100%;background:var(--accent)"></div></div><span class="num"><b>1.00</b></span></div>
+      </div>
+      <table>
+        <tr><th>Chỉ số</th><th class="n">Random</th><th class="n">Laplacian</th><th class="n">PoC</th></tr>
+        <tr><td><b>Defect Recall@20</b></td><td class="n">0.50</td><td class="n">0.85</td><td class="n"><b>1.00</b></td></tr>
+        <tr><td>Precision@20</td><td class="n">0.50</td><td class="n">0.85</td><td class="n"><b>1.00</b></td></tr>
+        <tr><td>Ảnh sạch lọt top-20 · hoàng hôn</td><td class="n">50%</td><td class="n">50%</td><td class="n"><b>0%</b></td></tr>
+        <tr><td>Ảnh sạch lọt top-20 · đêm</td><td class="n">75%</td><td class="n">25%</td><td class="n"><b>0%</b></td></tr>
+        <tr><td>Đúng loại lỗi</td><td class="n">—</td><td class="n">—</td><td class="n"><b>95%</b></td></tr>
+        <tr><td>KEEP/RECAPTURE · 96 ảnh</td><td class="n">—</td><td class="n">23/48 · 5 nhầm</td><td class="n"><b>47/48 · 0 nhầm</b></td></tr>
+      </table>
+      <p style="font-size:13.5px;color:var(--muted);margin-top:8px"><b style="color:var(--text)">Bảng 1.</b> So sánh trên split eval; dòng cuối tính trên toàn bộ 96 ảnh.</p>
+    </div>
+    <div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:10px"><b style="color:var(--text)">Hình 2.</b> Bốn ảnh baseline Laplacian xử lý sai, PoC xử lý đúng.</p>
+      <div class="ev">
+        <figure><img src="img/img_21_0.jpg" alt=""><figcaption><span class="cap-s">Sạch · cam_B</span><span><span class="badge ko">Lap: RECAPTURE</span></span></figcaption></figure>
+        <figure><img src="img/img_00_0.jpg" alt=""><figcaption><span class="cap-s">Sạch · cam_B</span><span><span class="badge ko">Lap: RECAPTURE</span></span></figcaption></figure>
+        <figure><img src="img/img_17_2.jpg" alt=""><figcaption><span class="cap-s">Lóa nặng</span><span><span class="badge ko">Lap: KEEP</span></span></figcaption></figure>
+        <figure><img src="img/img_13_2.jpg" alt=""><figcaption><span class="cap-s">Vỡ nén · đêm</span><span><span class="badge ko">Lap: KEEP</span></span></figcaption></figure>
+      </div>
+      <p style="font-size:13.5px;margin-top:10px;color:var(--muted)">Số liệu tính bằng <span class="mono">src.evaluate</span>; tái lập đầy đủ trong notebook Colab.</p>
+    </div>
+  </div>
+  <div class="foot"><span>reports/metrics_*.json · reports/table1_baseline_vs_poc.md</span><span>4 / 5</span></div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">Failure case · Quyết định · Bước tiếp theo</div>
+  <h2>Chưa hoàn hảo — và nói rõ vì sao</h2>
+  <div class="end">
+    <div>
+      <div class="box" style="margin-bottom:16px">
+        <h3>Ca bỏ sót duy nhất: <span class="mono">img_19_2</span> (vỡ nén nhẹ)</h3>
+        <div class="pair" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <figure><img src="img/img_19_0.jpg" alt=""><figcaption><span class="cap-s">Gốc</span><span class="cap-s mono">blockiness 0.80</span></figcaption></figure>
+          <figure><img src="img/img_19_2.jpg" alt=""><figcaption><span class="cap-s">Vỡ nén nhẹ</span><span class="cap-s mono">blockiness 1.62</span></figcaption></figure>
+        </div>
+        <p style="font-size:14.5px;color:var(--muted);margin-top:8px">Root cause: 1.62 nằm trong vùng chồng lấn với ảnh sạch nhiễu nhất (1.66) → hạ ngưỡng sẽ gây báo nhầm. Cần so với ảnh gốc cùng cảnh.</p>
+      </div>
+      <div class="box">
+        <h3>Hạn chế</h3>
+        <ul><li>Nhãn do nhóm tự gán, tập synthetic nhỏ (96 ảnh).</li>
+          <li>Khi chọn ngưỡng nhóm đã xem phân bố đặc trưng của cả dev lẫn eval → cần tập heldout mới để xác nhận 1.00.</li>
+          <li>Ngưỡng tối ưu cho ảnh 320×180, chưa kiểm ảnh thật.</li></ul>
+      </div>
+    </div>
+    <div>
+      <div class="box" style="margin-bottom:16px">
+        <div class="decision"><span class="pill">HOLD</span><span class="mono" style="font-size:14px">RECAPTURE_NEEDED · QC Lead</span></div>
+        <p style="font-size:15.5px">47/96 ảnh (49%) cần chụp lại: 17 vỡ nén, 12 nhòe, 10 thiếu sáng, 8 lóa. Batch chưa đủ điều kiện release — chụp lại rồi chạy QC lần nữa.</p>
+      </div>
+      <div class="box">
+        <h3>Bước tiếp theo (+24h)</h3>
+        <ul><li>Ngưỡng riêng theo camera & ROI biển số.</li>
+          <li>So blockiness với ảnh cùng cảnh để bắt vỡ nén nhẹ.</li>
+          <li>Kiểm 10 ảnh thật out-of-domain (BDD) trước khi tin số liệu.</li></ul>
+        <div class="links"><a href="index.html">Demo trực tiếp →</a><a href="https://colab.research.google.com/github/hdung25/K5-Day6-L2-Cloud-DataGovernanceAndPrivacy/blob/main/demo/T02_raw_qc_colab.ipynb" target="_blank" rel="noopener">Mở trên Colab →</a></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>Cảm ơn! · Câu hỏi?</span><span>5 / 5</span></div>
+</section>
+
+</div></div>
+
+<div class="nav"><button id="prev" aria-label="Slide trước">←</button><span id="count">1 / 5</span>
+  <button id="next" aria-label="Slide sau">→</button><a href="index.html">Demo</a><button onclick="window.print()">PDF</button></div>
+
+<script>
+const slides = [...document.querySelectorAll(".slide")], deck = document.getElementById("deck");
+let i = Math.max(0, Math.min(slides.length - 1, (parseInt(location.hash.slice(1)) || 1) - 1));
+function show(n){
+  i = Math.max(0, Math.min(slides.length - 1, n));
+  slides.forEach((s, k) => s.classList.toggle("active", k === i));
+  document.getElementById("count").textContent = `${i + 1} / ${slides.length}`;
+  history.replaceState(null, "", "#" + (i + 1));
+}
+function fit(){ const s = Math.min(innerWidth / 1320, (innerHeight - 50) / 760); deck.style.transform = `translate(-50%, -50%) scale(${s})`; }
+addEventListener("resize", fit); fit(); show(i);
+addEventListener("hashchange", () => show((parseInt(location.hash.slice(1)) || 1) - 1));
+addEventListener("keydown", e => {
+  if(["ArrowRight","PageDown"," "].includes(e.key)) { e.preventDefault(); show(i + 1); }
+  if(["ArrowLeft","PageUp"].includes(e.key)) show(i - 1);
+});
+document.getElementById("prev").onclick = () => show(i - 1);
+document.getElementById("next").onclick = () => show(i + 1);
+let x0 = null;
+addEventListener("touchstart", e => x0 = e.touches[0].clientX);
+addEventListener("touchend", e => { if(x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if(Math.abs(dx) > 40) show(i + (dx < 0 ? 1 : -1)); x0 = null; });
+</script>
+</body>
+</html>
