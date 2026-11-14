@@ -73,6 +73,7 @@ Random baseline: Recall@20 = 0.50 (`reports/table1_random_vs_poc.md`).
 - **Độ bất định (Wilson 95% CI, N = 20 ảnh lỗi):** PoC 1.00 [0.84, 1.00] · Laplacian 0.85 [0.64, 0.95] · Random 0.50 [0.30, 0.70]. Khoảng tin cậy PoC và Laplacian chồng nhau → với N nhỏ, chưa thể khẳng định chênh lệch có ý nghĩa thống kê.
 - **Lệnh evaluate:** `python -m src.evaluate --track t02 --gt reports/manual_audit_labels.csv --pred out/poc/ranked_review.csv --run-name poc --out reports/metrics_poc.json`
 
+
 ## 06 · Result slices
 
 | Slice | N | Baseline (Laplacian) | PoC | Ghi chú |
@@ -96,6 +97,7 @@ Random baseline: Recall@20 = 0.50 (`reports/table1_random_vs_poc.md`).
 
 ## 08 · Reproduce & tests
 
+
 ```bash
 pip install -r requirements.txt
 python -m src.main --track t02 --pipeline src.examples.laplacian_baseline --output out/baseline --run-name baseline --offline --seed 42
@@ -105,6 +107,7 @@ python -m src.evaluate --track t02 --gt reports/manual_audit_labels.csv --pred o
 python -m src.compare reports/metrics_baseline.json reports/metrics_poc.json --out reports/table1_baseline_vs_poc.md
 pytest -q
 ```
+
 
 - **`pytest -q`:** 50 passed, 39 skipped, 0 failed (8.6 s; các test skip cần GT của giảng viên — instructor overlay không phát hành). Test của nhóm: `tests/test_t02_pipeline.py` (1 success + 2 edge case) và `tests/test_cli.py::test_group_pipeline_runs_end_to_end`.
 - **Máy:** Intel 12th gen, Windows 11, Python 3.11.9 · git sha của lần chạy: `07c89f6` (ghi trong `reports/metrics_poc.json`, seed 42).
@@ -128,6 +131,7 @@ pytest -q
 | Triệu Hoàng Hiếu – 2A202603294 | `hieuwewe123` / 169576317+hieuwewe123@users.noreply.github.com | QA / metric: `reports/metric_contract.md`, chạy `src.evaluate` + `src.compare` (Bảng 1, slice, Wilson CI), `tests/test_t02_pipeline.py` (1 success + 2 edge case), phân tích failure case | chưa có commit riêng trên repo — cần tự push phần việc | có |
 | Phạm Minh Quân – 2A202603307 | `phamminhquan1101` / 103442458+phamminhquan1101@users.noreply.github.com | Human review + report: `reports/review_queue.csv`, `out/poc/contact_sheet.html`, `reports/decision_log.csv`, web demo + 5 slide (`web/`), viết `reports/group_report.md` | chưa có commit riêng trên repo — cần tự push phần việc | có |
 
+
 ## 11 · References
 
 | Nguồn | Ý nghĩa |
@@ -138,6 +142,7 @@ pytest -q
 | `docs/tracks/T02.md` (đề bài) | Baseline Laplacian, metric Recall@B, failure modes bắt buộc |
 
 ---
+
 
 **Bảng 3 · Checklist chốt khi nộp**
 
