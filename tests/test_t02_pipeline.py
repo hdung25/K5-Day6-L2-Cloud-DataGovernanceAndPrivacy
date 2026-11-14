@@ -1,4 +1,3 @@
-"""Tests của nhóm cho T02 pipeline: 1 success case + 2 edge/failure case."""
 from pathlib import Path
 
 import numpy as np
@@ -38,3 +37,9 @@ def test_synthetic_edge_cases():
     glare[40:60, 100:120] = 255
     assert local_saturation(glare) == pytest.approx(1.0)
     assert local_saturation(flat) == 0.0
+
+
+def test_local_saturation_handles_images_smaller_than_cell():
+    small = np.zeros((10, 10), dtype=np.float32)
+    small[:5, :] = 255
+    assert local_saturation(small) == pytest.approx(0.5)
