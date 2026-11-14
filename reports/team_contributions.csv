@@ -1,6 +1,5 @@
 member,git_author_name,git_email,role,modules_files,commit_shas,evidence_note,presenter
-Member 1,hdung25,,Lead / Integrator + Core algorithm,src/pipeline.py; src/examples/laplacian_baseline.py; configs/lab.yaml,,"T02 PoC pipeline, baseline, demo web + Colab",yes
-Member 2,,,Data & fixtures,reports/manual_audit_labels.csv; fixtures/,,,
-Member 3,,,Core algorithm,src/pipeline.py,,,
-Member 4,,,QA / metric,tests/test_t02_pipeline.py; reports/metrics_*.json,,,
-Member 5,,,Human review + report,reports/group_report.md; demo/; web/,,,
+Hà Huy Dũng (2A202603271),hdung25,hahuyd25@gmail.com,Lead / Integrator + Core algorithm,src/pipeline.py; src/examples/laplacian_baseline.py; configs/lab.yaml; demo/; web/,07c89f6; 9538aa6,"T02 PoC pipeline, baseline, Colab + web demo",yes
+Trần Nguyễn Hữu Phúc (2A202603303),hhuuphucc,148366328+hhuuphucc@users.noreply.github.com,"Data, provenance & GT audit",reports/manual_audit_labels.csv; fixtures/t02_raw_qc/manifest.csv,,"Gán nhãn 96 ảnh, kiểm sha256 manifest; chưa có commit riêng",yes
+Triệu Hoàng Hiếu (2A202603294),hieuwewe123,169576317+hieuwewe123@users.noreply.github.com,QA / metric / tests,reports/metric_contract.md; reports/metrics_*.json; reports/table1_*.md; tests/test_t02_pipeline.py,,"Evaluate, compare, slice + failure case; chưa có commit riêng",yes
+Phạm Minh Quân (2A202603307),phamminhquan1101,103442458+phamminhquan1101@users.noreply.github.com,Human review + demo + report,reports/review_queue.csv; reports/decision_log.csv; web/; reports/group_report.md,,"Review queue, decision log, slide, viết report; chưa có commit riêng",yes

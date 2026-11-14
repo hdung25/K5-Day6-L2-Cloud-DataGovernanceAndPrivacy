@@ -9,13 +9,13 @@
 |---|---|
 | Group ID | G06 |
 | Challenge | T02 · Raw QC Triage: ảnh mờ, lóa và thiếu sáng |
-| Thành viên (5–6) + vai trò | 1. hdung25 (Lead/Integrator, Core algorithm) · 2. ____ (Data & fixtures) · 3. ____ (Core algorithm) · 4. ____ (QA/metric) · 5. ____ (Review + report) |
+| Thành viên (4) + vai trò | 1. Hà Huy Dũng – 2A202603271 – `hdung25` (Lead/Integrator, Core algorithm) · 2. Trần Nguyễn Hữu Phúc – 2A202603303 – `hhuuphucc` (Data, provenance & GT audit) · 3. Triệu Hoàng Hiếu – 2A202603294 – `hieuwewe123` (QA / metric / tests) · 4. Phạm Minh Quân – 2A202603307 – `phamminhquan1101` (Human review, demo & report) |
 | Git URL | https://github.com/hdung25/K5-Day6-L2-Cloud-DataGovernanceAndPrivacy |
 | Demo | https://t02-raw-qc-demo.vercel.app · slide: https://t02-raw-qc-demo.vercel.app/slides.html |
 | Colab | https://colab.research.google.com/github/hdung25/K5-Day6-L2-Cloud-DataGovernanceAndPrivacy/blob/main/demo/T02_raw_qc_colab.ipynb |
-| Tag `demo-180m` (commit) | ____ (`make tag-demo`) |
-| Tag `final-24h` (commit) | ____ (`make tag-final`) |
-| Deadline (giờ VN) | ____ |
+| Tag `demo-180m` (commit) | `07c89f6` (`make tag-demo`) |
+| Tag `final-24h` (commit) | commit cập nhật report này — xem `git rev-parse final-24h` (`make tag-final`) |
+| Deadline (giờ VN) | 15/11/2026 (24h sau buổi lab 14/11/2026) |
 
 ## 01 · Problem statement
 
@@ -62,7 +62,7 @@
 | Hard-slice: false alarm top-B, light=night | 0.25 (2/8 ảnh sạch) | 0.00 | −0.25; lower; N=16 |
 | Hard-slice: false alarm top-B, light=dusk | 0.50 (1/2) | 0.00 | −0.50; lower; N=4 (rất nhỏ) |
 | Defect-type accuracy | n/a | 0.95 (19/20) | — |
-| Runtime / 100 items | 0.24 s | 0.51 s | CPU Intel 12th gen, Windows 11, Python 3.11 |
+| Runtime / 100 items | 0.23 s | 0.43 s | CPU Intel 12th gen, Windows 11, Python 3.11 |
 
 Random baseline: Recall@20 = 0.50 (`reports/table1_random_vs_poc.md`).
 
@@ -85,7 +85,7 @@ Random baseline: Recall@20 = 0.50 (`reports/table1_random_vs_poc.md`).
 - **Failure case 1 — `img_19_2` (vỡ nén nhẹ, cam_A, day):** blockiness 1.62 → điểm 0.29 < 0.5 → PoC tự gắn KEEP (bỏ sót duy nhất trên 96 ảnh: 47/48). Root cause: phân bố blockiness của ảnh sạch nhiều chi tiết lên tới 1.66 → hạ ngưỡng sẽ báo nhầm `img_12_0`, `img_22_0`. Ảnh vẫn nằm hạng 20 của hàng chờ eval nên được người review bắt. Cải tiến: so blockiness với ảnh gốc cùng cảnh.
 - **Failure case 2 (rủi ro) — lóa ban đêm `img_03_2`, `img_06_3` (cam_B, night):** tỉ lệ pixel cháy cục bộ chỉ 0.10–0.13 (điểm lóa theo cụm cháy ~0.16–0.30); được bắt nhờ điều kiện "sáng > 1.4× median ban đêm" (ratio 2.3–2.4). Biên an toàn phụ thuộc vào median của lô → lô toàn ảnh đêm có lóa sẽ yếu đi.
 - **Failure mode của baseline (đề yêu cầu phân tích):** cam_B quang học mềm → 5 ảnh sạch cam_B bị báo nhầm (`img_00_0, img_09_0, img_12_0, img_21_0, img_06_0`); lóa/vỡ nén bị bỏ sót (25/48 ảnh lỗi không bị gắn RECAPTURE).
-- **Latency:** 0.51 s / 100 ảnh (CPU, không GPU).
+- **Latency:** 0.43 s / 100 ảnh (CPU, không GPU).
 
 ## 07 · Human & decision
 
@@ -106,8 +106,8 @@ python -m src.compare reports/metrics_baseline.json reports/metrics_poc.json --o
 pytest -q
 ```
 
-- **`pytest -q`:** toàn bộ pass (0 failed). Test của nhóm: `tests/test_t02_pipeline.py` (1 success + 2 edge case) và `tests/test_cli.py::test_group_pipeline_runs_end_to_end`.
-- **Máy:** Intel 12th gen, Windows 11, Python 3.11.9 · git sha: xem `reports/metrics_poc.json`.
+- **`pytest -q`:** 50 passed, 39 skipped, 0 failed (8.6 s; các test skip cần GT của giảng viên — instructor overlay không phát hành). Test của nhóm: `tests/test_t02_pipeline.py` (1 success + 2 edge case) và `tests/test_cli.py::test_group_pipeline_runs_end_to_end`.
+- **Máy:** Intel 12th gen, Windows 11, Python 3.11.9 · git sha của lần chạy: `07c89f6` (ghi trong `reports/metrics_poc.json`, seed 42).
 - **Notebook Colab** tái lập toàn bộ (`demo/T02_raw_qc_colab.ipynb`).
 
 ## 09 · Limitations & ethics
@@ -123,11 +123,10 @@ pytest -q
 
 | Học viên | Git author/email | Module / vai trò | Commit SHA / diff chứng minh | Trình bày? |
 |---|---|---|---|---|
-| Member 1 | hdung25 | Pipeline T02, baseline, demo, report | xem `git log` | có |
-| Member 2 | | Data + GT | | |
-| Member 3 | | Core algorithm | | |
-| Member 4 | | Metric + tests | | |
-| Member 5 | | Review queue + report | | |
+| Hà Huy Dũng – 2A202603271 | `hdung25` / hahuyd25@gmail.com | Lead/Integrator + core algorithm: `src/pipeline.py` (4 bộ phát hiện, rank, decide), `src/examples/laplacian_baseline.py`, `configs/lab.yaml`, tích hợp Colab + web demo | `07c89f6` (PoC pipeline, baseline, reports, demo), `9538aa6` | có |
+| Trần Nguyễn Hữu Phúc – 2A202603303 | `hhuuphucc` / 148366328+hhuuphucc@users.noreply.github.com | Data & provenance: kiểm `manifest.csv` (sha256), schema `images.csv`, chia split theo cảnh; gán nhãn audit 96 ảnh `reports/manual_audit_labels.csv` (GT) | chưa có commit riêng trên repo — cần tự push phần việc | có |
+| Triệu Hoàng Hiếu – 2A202603294 | `hieuwewe123` / 169576317+hieuwewe123@users.noreply.github.com | QA / metric: `reports/metric_contract.md`, chạy `src.evaluate` + `src.compare` (Bảng 1, slice, Wilson CI), `tests/test_t02_pipeline.py` (1 success + 2 edge case), phân tích failure case | chưa có commit riêng trên repo — cần tự push phần việc | có |
+| Phạm Minh Quân – 2A202603307 | `phamminhquan1101` / 103442458+phamminhquan1101@users.noreply.github.com | Human review + report: `reports/review_queue.csv`, `out/poc/contact_sheet.html`, `reports/decision_log.csv`, web demo + 5 slide (`web/`), viết `reports/group_report.md` | chưa có commit riêng trên repo — cần tự push phần việc | có |
 
 ## 11 · References
 
@@ -142,8 +141,8 @@ pytest -q
 
 **Bảng 3 · Checklist chốt khi nộp**
 
-- [x] Link repo trong README; input mẫu không chứa PII thật. *(tag cuối: chưa tạo)*
+- [x] Link repo trong README; input mẫu không chứa PII thật; tag `demo-180m` + `final-24h` đã tạo.
 - [x] Đúng 1 lệnh run, 1 lệnh evaluate, 1 lệnh tests; không cần download khi chạy.
 - [ ] Có baseline/PoC metrics, ≥1 failure case, decision log — **còn thiếu reviewer evidence thật**.
 - [x] Có license/source provenance, data splits, seed, offline environment, GT/eval N.
-- [ ] Mỗi thành viên có ≥1 commit thực chất và được nêu minh bạch trong bảng trên.
+- [ ] Mỗi thành viên có ≥1 commit thực chất và được nêu minh bạch trong bảng trên — **hiện mới có commit của `hdung25`**; 3 thành viên còn lại cần tự commit phần việc của mình.
