@@ -44,7 +44,7 @@
 ## 03 · Research & design
 
 - **Các kỹ thuật được lựa chọn và lý do:**
-  - *Variance of Laplacian:* Dùng để đánh giá độ nét của ảnh, từ đó phát hiện ảnh bị mờ. Nhóm sử dụng thang log và ngưỡng thấp để hạn chế việc đánh dấu nhầm những ảnh có chất lượng quang học mềm.
+  - *Variance of Laplacian:* Dùng để đánh giá độ nét của ảnh, từ đó phát hiện ảnh bị mờ. Nhóm sử dụng thang log và ngưỡng thấp để hạn chế việc đánh dấu nhầm những ảnh có chất lượng quang học mềm. 
   - *Blockiness:* Đánh giá sự khác biệt của gradient tại các đường biên khối 8×8 so với khu vực bên trong khối. Cách này giúp phát hiện hiện tượng vỡ nén JPEG mà chỉ số độ nét thông thường có thể bỏ qua.
   - *Chuẩn hóa độ sáng theo điều kiện chụp:* Điều chỉnh việc đánh giá dựa trên `light` và `camera_id`. Theo định hướng của bộ dữ liệu ACDC, ảnh ban đêm hoặc trong điều kiện thời tiết xấu vẫn có thể là dữ liệu hợp lệ, không nên mặc định xem là ảnh lỗi.
 - **Quy trình xử lý:** `load` (kiểm tra SHA256 manifest) → `process` (trích xuất 4 đặc trưng, tính 4 điểm từ 0–1 và lấy điểm cao nhất) → `rank` (xếp hạng top-20 và tạo contact sheet) → `review` (approve/reject/edit và ghi audit log) → `decide` (đưa ra GO/HOLD/REWORK kèm reason_code và owner).
